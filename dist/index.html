@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Экспорт расписания</title>
+   <link rel="icon" href="../logo/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="../logo/favicon.png" type="image/png" />
+    <link rel="icon" href="../logo/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="../logo/favicon.png" />
+  <style>
+    :root {
+      --border: #d9e1ee;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --accent: #4f46e5;
+      --cell: 58px;
+      --time-col: 84px;
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, sans-serif;
+      background: linear-gradient(180deg, #eef3ff 0%, #f7f9fc 100%);
+      color: var(--text);
+    }
+    .app {
+      max-width: 1800px;
+      margin: 0 auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .panel {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 10px 30px rgba(15,23,42,.08);
+    }
+    .toolbar {
+      padding: 14px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      justify-content:space-between;
+      align-items:center;
+    }
+    .title { font-size: 22px; font-weight: 800; margin: 0; }
+    .subtitle { margin: 4px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .tabs {
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      padding: 14px;
+    }
+    .tab {
+      border:1px solid var(--border);
+      background:#f8fafc;
+      color:#334155;
+      border-radius:999px;
+      padding:8px 12px;
+      cursor:pointer;
+      font-weight:700;
+    }
+    .tab.active {
+      background: var(--accent);
+      color:#fff;
+      border-color: var(--accent);
+    }
+    .content { display:grid; gap:18px; }
+    .schedule-card { padding: 14px; }
+    .schedule-title {
+      width:100%;
+      border:0;
+      background: transparent;
+      padding: 0;
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+    }
+    .hint {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 4px 0 0;
+      line-height: 1.5;
+    }
+    .export-explainer {
+      margin: 0 14px 0;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #f8fafc;
+      color: #334155;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 14px;
+    }
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+      font-size: 12px;
+      color: #334155;
+    }
+    .legend-swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 6px;
+      border: 1px solid rgba(0,0,0,0.08);
+      flex: 0 0 auto;
+    }
+    .sw-green { background: rgba(34, 197, 94, 0.18); }
+    .sw-yellow { background: rgba(250, 204, 21, 0.18); }
+    .sw-red { background: rgba(239, 68, 68, 0.18); }
+    .sw-purple {
+      background-color: rgba(168, 85, 247, 0.18);
+      background-image: repeating-linear-gradient(45deg, rgba(168, 85, 247, 0.38) 0, rgba(168, 85, 247, 0.38) 5px, rgba(255,255,255,0.18) 5px, rgba(255,255,255,0.18) 10px);
+    }
+    .sw-blue {
+      background-color: rgba(59, 130, 246, 0.18);
+      background-image: repeating-linear-gradient(45deg, rgba(59, 130, 246, 0.38) 0, rgba(59, 130, 246, 0.38) 5px, rgba(255,255,255,0.18) 5px, rgba(255,255,255,0.18) 10px);
+    }
+    .grid-wrap { overflow:auto; border-radius:18px; }
+    .grid {
+      display:grid;
+      grid-template-columns: var(--time-col) repeat(7, minmax(140px, 1fr)) var(--time-col);
+      gap:1px;
+      background: var(--border);
+      border:1px solid var(--border);
+      border-radius:18px;
+      overflow:hidden;
+      width:100%;
+      min-width:1100px;
+    }
+    .cell {
+      background:white;
+      min-height: var(--cell);
+      padding:8px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      font-size:13px;
+      position:relative;
+    }
+    .header-cell { background:#f8fafc; font-weight:800; min-height:52px; }
+    .time-cell { background:#fafbff; font-weight:700; color:#475569; }
+    .slot { padding:0; }
+    .slot-inner {
+      width:100%;
+      height:100%;
+      min-height: var(--cell);
+      position:relative;
+      overflow:hidden;
+    }
+    .slot-mark {
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+    }
+    .slot-label {
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:12px;
+      color:#334155;
+      font-weight:700;
+      pointer-events:none;
+    }
+    .slot-label.free {
+      color:#475569;
+    }
+    .slot-label.hidden {
+      display:none;
+    }
+    .schedule-card + .schedule-card { margin-top: 18px; }
+
+    .export-timezone-select {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #fff;
+  font: inherit;
+  font-weight: 700;
+  color: #334155;
+}
+
+.timezone-toast {
+  position: fixed;
+  top: 30px;
+  left: 65%;
+  right: auto;
+  transform: translateY(-14px);
+  z-index: 50;
+  padding: 18px 24px;
+  border-radius: 18px;
+  background: rgba(79, 70, 229, 0.96);
+  color: #fff;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.timezone-toast.show {
+  opacity: 1;
+  transform:  translateY(0);
+}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="panel toolbar">
+  <div>
+    <h1 class="title">Расписание на период летних занятий</h1>
+    <p class="subtitle">Время указано в выбранном часовом поясе. Цвета показывают удобство, а штриховка — занятое время.</p>
+  </div>
+  <div>
+    <select id="exportTimezone" class="export-timezone-select">
+      <option value="moscow">Москва</option>
+      <option value="perm">Пермь</option>
+    </select>
+  </div>
+</section>
+
+    <p class="export-explainer">
+      Зелёный, жёлтый и красный цвета показывают, насколько удобно время для занятий.
+      Фиолетовая штриховка означает, что это время уже занято учеником.
+      Синяя штриховка означает, что время занято побочными проектами.
+      Свободные клетки подписаны словом «свободно».
+    </p>
+
+  <div id="timezoneToast" class="timezone-toast">Выберите нужный часовой пояс  🢂</div>
+
+    <div class="legend">
+      <div class="legend-item"><span class="legend-swatch sw-green"></span>Зелёный — удобно</div>
+      <div class="legend-item"><span class="legend-swatch sw-yellow"></span>Жёлтый — приемлемо</div>
+      <div class="legend-item"><span class="legend-swatch sw-red"></span>Красный — запасной вариант</div>
+      <div class="legend-item"><span class="legend-swatch sw-purple"></span>Штриховка фиолетовым — занят учеником</div>
+      <div class="legend-item"><span class="legend-swatch sw-blue"></span>Штриховка синим — занятое время</div>
+    </div>
+
+    <section class="panel"><div id="tabs" class="tabs"></div></section>
+    <div id="content" class="content"></div>
+  </div>
+
+  <script>
+    const state = {"schedules":[{"id":"24e1a42b-83f3-4798-93d7-a802e078ed75","title":"Летнее расписание (08.06 - 15.06)","tzShift":false,"days":["ПН","ВТ","СР","ЧТ","ПТ","СБ ","ВСК"],"assignments":{"fri_16":"Иван","sun_19":"Max","fri_11":"МатвейЕГЭ","mon_8":"Данила","mon_9":"Андрей","mon_10":"Даша","mon_11":"Диана","tue_8":"Егор","tue_9":"Даша","wed_8":"Данила","wed_9":"Андрей","wed_10":"МаксимScratch","sun_8":"Марк","sun_9":"МаркRBLX","sun_10":"МаркСева","sun_11":"МаркСева","sun_14":"ДимаEV3","sun_15":"Марк","tue_10":"АлёнаЕГЭ","tue_11":"АлёнаЕГЭ","wed_13":"МатвейЕГЭ","wed_11":"АлёнаЕГЭ","sun_13":"MatveiUnity","sun_12":"ДаняПР","sun_16":"Ник","sun_17":"Max","wed_15":"Иван","wed_16":"Марк"},"painted":{"sat_10":"busy","sat_11":"busy","sat_13":"busy","sat_14":"busy","sat_12":"busy","sat_15":"busy","sat_17":"busy","sat_16":"busy","sat_18":"busy","sat_19":"yellow","sat_20":"yellow","sat_21":"yellow","sat_22":"yellow","sun_20":"yellow","sat_8":"busy","sat_9":"busy","fri_18":"busy","thu_18":"busy","thu_17":"busy","mon_12":"green","mon_13":"green","mon_14":"green","tue_12":"green","tue_13":"green","tue_14":"green","wed_12":"green","wed_14":"green","mon_15":"yellow","mon_16":"yellow","mon_17":"red","tue_15":"yellow","tue_16":"yellow","tue_17":"red","tue_18":"red","mon_18":"red","thu_8":"red","thu_9":"red","thu_10":"red","thu_12":"red","thu_11":"red","thu_13":"red","fri_12":"busy","fri_15":"busy","fri_14":"busy","fri_13":"busy","fri_10":"busy","fri_9":"busy","fri_8":"busy","thu_14":"busy","thu_15":"busy","thu_16":"busy","wed_17":"red","wed_18":"red","sun_18":"busy","fri_17":"busy"}},{"id":"5a9b533f-53fc-42be-ab86-f04557406393","title":"Летнее расписание (с 15.06)","tzShift":true,"days":["ПН","ВТ","СР","ЧТ","ПТ","СБ ","ВСК"],"assignments":{"fri_16":"Иван","sun_19":"Max","mon_8":"Данила","mon_9":"Андрей","mon_10":"Даша","mon_11":"Диана","tue_8":"Егор","tue_9":"Даша","wed_8":"Данила","wed_9":"Андрей","wed_10":"МаксимScratch","sun_8":"Марк","sun_9":"МаркRBLX","sun_10":"МаркСева","sun_11":"МаркСева","sun_12":"ДаняПР","sun_14":"ДимаEV3","sun_15":"Марк","sun_16":"Ник","sun_13":"MatveiUnity","sun_17":"Max","wed_15":"Иван","wed_16":"Марк","tue_10":"БогданPython"},"painted":{"sat_10":"busy","sat_11":"busy","sat_14":"busy","sat_12":"busy","sat_15":"busy","sat_17":"busy","sat_16":"busy","sat_18":"busy","sat_21":"yellow","sat_22":"yellow","thu_13":"red","thu_10":"red","thu_12":"red","thu_14":"yellow","thu_15":"yellow","thu_16":"busy","thu_17":"busy","thu_18":"busy","thu_20":"busy","thu_19":"busy","fri_20":"busy","fri_19":"busy","fri_18":"busy","fri_17":"busy","fri_15":"busy","fri_14":"busy","fri_13":"busy","fri_12":"busy","fri_11":"busy","sun_20":"busy","sat_13":"busy","sat_20":"busy","thu_11":"red","wed_20":"yellow","wed_19":"yellow","tue_19":"yellow","tue_20":"yellow","mon_19":"yellow","mon_20":"yellow","mon_18":"red","tue_17":"red","mon_17":"red","tue_12":"green","tue_13":"green","wed_13":"green","wed_14":"green","tue_15":"yellow","tue_14":"green","mon_14":"green","mon_15":"yellow","tue_16":"yellow","mon_16":"yellow","sat_19":"busy","fri_10":"busy","mon_13":"green","mon_12":"green","tue_11":"green","wed_11":"green","wed_12":"green","thu_8":"red","thu_9":"red","sun_18":"busy","sat_8":"busy","sat_9":"busy","fri_8":"busy","fri_9":"busy","wed_17":"red","wed_18":"red","tue_18":"red"}}],"compareMode":false};
+    const hours = [8,9,10,11,12,13,14,15,16,17,18];
+    const dayOrder = ['mon','tue','wed','thu','fri','sat','sun'];
+    const dayKeyByIndex = i => dayOrder[i];
+    const tabs = document.getElementById('tabs');
+    const content = document.getElementById('content');
+
+const timezoneSelect = document.getElementById('exportTimezone');
+const timezoneToast = document.getElementById('timezoneToast');
+let exportTimezone = 'moscow';
+
+function showTimezoneToast() {
+  timezoneToast.classList.add('show');
+  setTimeout(() => timezoneToast.classList.remove('show'), 2600);
+}
+
+timezoneSelect.addEventListener('change', () => {
+  exportTimezone = timezoneSelect.value;
+  render(currentScheduleId);
+});           
+
+    function timeLabel(hour) {
+  const offset = exportTimezone === 'perm' ? 2 : 0;
+  return String(hour + offset).padStart(2, '0') + ':00';
+}
+
+    function slotKey(dayIdx, hour) {
+      return dayKeyByIndex(dayIdx) + '_' + hour;
+    }
+
+    function render(activeId) {
+      currentScheduleId = activeId;
+      tabs.innerHTML = '';
+      content.innerHTML = '';
+
+      state.schedules.forEach(s => {
+        const b = document.createElement('button');
+        b.className = 'tab' + (s.id === activeId ? ' active' : '');
+        b.textContent = s.title || 'Без названия';
+        b.onclick = function () { render(s.id); };
+        tabs.appendChild(b);
+      });
+
+      const schedule = state.schedules.find(s => s.id === activeId) || state.schedules[0];
+      if (!schedule) return;
+
+      const card = document.createElement('section');
+      card.className = 'panel schedule-card';
+
+      const title = document.createElement('h2');
+      title.className = 'schedule-title';
+      title.textContent = schedule.title || 'Без названия';
+
+      const hint = document.createElement('p');
+      hint.className = 'hint';
+      hint.textContent = '';
+
+      const wrap = document.createElement('div');
+      wrap.className = 'grid-wrap';
+      wrap.appendChild(buildGrid(schedule));
+
+      card.appendChild(title);
+      card.appendChild(hint);
+      card.appendChild(wrap);
+      content.appendChild(card);
+    }
+
+    function buildGrid(schedule) {
+      const grid = document.createElement('div');
+      grid.className = 'grid';
+
+      grid.appendChild(makeCell('', 'cell header-cell'));
+      schedule.days.forEach(function (d) {
+        grid.appendChild(makeCell(d, 'cell header-cell'));
+      });
+      grid.appendChild(makeCell('', 'cell header-cell'));
+
+      hours.forEach(function (hour) {
+        grid.appendChild(makeCell(timeLabel(hour), 'cell time-cell'));
+
+        schedule.days.forEach(function (_, dayIdx) {
+          const key = slotKey(dayIdx, hour);
+          const slot = document.createElement('div');
+          slot.className = 'cell slot';
+
+          const inner = document.createElement('div');
+          inner.className = 'slot-inner';
+
+                    const mark = schedule.painted && schedule.painted[key] ? schedule.painted[key] : null;
+          const hasStudent = !!(schedule.assignments && schedule.assignments[key]);
+
+          if (hasStudent) {
+            const overlay = document.createElement('div');
+            overlay.className = 'slot-mark';
+            overlay.style.cssText = 'background-color: rgba(168, 85, 247, 0.08);background-image: repeating-linear-gradient(45deg, rgba(168, 85, 247, 0.08) 0, rgba(168, 85, 247, 0.08) 9px, rgba(255, 255, 255, 0.08) 9px, rgba(255, 255, 255, 0.08) 18px);';
+            inner.appendChild(overlay);
+          } else if (mark === 'busy') {
+            const overlay = document.createElement('div');
+            overlay.className = 'slot-mark';
+            overlay.style.cssText = 'background-color: rgba(59, 130, 246, 0.08);background-image: repeating-linear-gradient(45deg, rgba(59, 130, 246, 0.08) 0, rgba(59, 130, 246, 0.08) 9px, rgba(255, 255, 255, 0.08) 9px, rgba(255, 255, 255, 0.08) 18px);';
+            inner.appendChild(overlay);
+          } else if (mark === 'green' || mark === 'yellow' || mark === 'red') {
+            const overlay = document.createElement('div');
+            overlay.className = 'slot-mark';
+            if (mark === 'green') overlay.style.cssText = 'background-color: rgba(34, 197, 94, 0.18);';
+            if (mark === 'yellow') overlay.style.cssText = 'background-color: rgba(250, 204, 21, 0.18);';
+            if (mark === 'red') overlay.style.cssText = 'background-color: rgba(239, 68, 68, 0.18);';
+            inner.appendChild(overlay);
+
+            const label = document.createElement('div');
+            label.className = 'slot-label free';
+            label.textContent = 'свободно';
+            inner.appendChild(label);
+          } else {
+            const label = document.createElement('div');
+            label.className = 'slot-label free';
+            label.textContent = 'свободно';
+            inner.appendChild(label);
+          }
+
+          slot.appendChild(inner);
+          grid.appendChild(slot);
+        });
+
+        grid.appendChild(makeCell(timeLabel(hour, schedule), 'cell time-cell'));
+      });
+
+      return grid;
+    }
+
+    function makeCell(text, cls) {
+      const d = document.createElement('div');
+      d.className = cls;
+      d.textContent = text;
+      return d;
+    }
+    let currentScheduleId = state.schedules[0]?.id || null;
+window.addEventListener('load', showTimezoneToast);
+    render(state.schedules[0] && state.schedules[0].id ? state.schedules[0].id : null);
+  </script>
+</body>
+</html>
