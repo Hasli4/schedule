@@ -1,406 +1,171 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Расписание занятий</title>
-   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="icon" href="favicon.png" type="image/png" />
-    <link rel="icon" href="favicon.ico" sizes="any" />
-    <link rel="apple-touch-icon" href="favicon.png" />
   <style>
     :root {
       --border: #d9e1ee;
       --text: #1f2937;
       --muted: #6b7280;
-      --accent: #4f46e5;
+      --accent: #0c7c74;
+      --bg: #f4f1ea;
+      --panel: #fffdfa;
       --cell: 58px;
-      --time-col: 84px;
-      --radius: 18px;
+      --time-col: 78px;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: Inter, system-ui, sans-serif;
-      background: linear-gradient(180deg, #eef3ff 0%, #f7f9fc 100%);
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background: linear-gradient(180deg, #eef7f5 0%, var(--bg) 100%);
       color: var(--text);
     }
-    .app {
-      max-width: 1800px;
-      margin: 0 auto;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    .panel {
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: 0 10px 30px rgba(15,23,42,.08);
-    }
-    .toolbar {
-      padding: 14px;
-      display:flex;
-      flex-wrap:wrap;
-      gap:10px;
-      justify-content:space-between;
-      align-items:center;
-    }
-    .title { font-size: 22px; font-weight: 800; margin: 0; }
-    .subtitle { margin: 4px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
-    .tabs {
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      padding: 14px;
-    }
-    .tab {
-      border:1px solid var(--border);
-      background:#f8fafc;
-      color:#334155;
-      border-radius:999px;
-      padding:8px 12px;
-      cursor:pointer;
-      font-weight:700;
-    }
-    .tab.active {
-      background: var(--accent);
-      color:#fff;
-      border-color: var(--accent);
-    }
-    .content { display:grid; gap:18px; }
-    .schedule-card { padding: 14px; }
-    .schedule-title {
-      width:100%;
-      border:0;
-      background: transparent;
-      padding: 0;
-      margin: 0;
-      font-size: 18px;
-      font-weight: 800;
-    }
-    .hint {
-      color: var(--muted);
-      font-size: 13px;
-      margin: 4px 0 0;
-      line-height: 1.5;
-    }
-    .export-explainer {
-      margin: 0 14px 0;
-      padding: 12px 14px;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      background: #f8fafc;
-      color: #334155;
-      font-size: 13px;
-      line-height: 1.5;
-    }
-    .legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin: 0 14px;
-    }
-    .legend-item {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 10px;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      background: #fff;
-      font-size: 12px;
-      color: #334155;
-    }
-    .legend-swatch {
-      width: 18px;
-      height: 18px;
-      border-radius: 6px;
-      border: 1px solid rgba(0,0,0,0.08);
-      flex: 0 0 auto;
-    }
-    .sw-green { background: rgba(34, 197, 94, 0.18); }
-    .sw-yellow { background: rgba(250, 204, 21, 0.18); }
-    .sw-red { background: rgba(239, 68, 68, 0.18); }
-    .sw-purple {
-      background-color: rgba(168, 85, 247, 0.18);
-      background-image: repeating-linear-gradient(45deg, rgba(168, 85, 247, 0.38) 0, rgba(168, 85, 247, 0.38) 5px, rgba(255,255,255,0.18) 5px, rgba(255,255,255,0.18) 10px);
-    }
-    .sw-blue {
-      background-color: rgba(59, 130, 246, 0.18);
-      background-image: repeating-linear-gradient(45deg, rgba(59, 130, 246, 0.38) 0, rgba(59, 130, 246, 0.38) 5px, rgba(255,255,255,0.18) 5px, rgba(255,255,255,0.18) 10px);
-    }
-    .grid-wrap { overflow:auto; border-radius:18px; }
-    .grid {
-      display:grid;
-      grid-template-columns: var(--time-col) repeat(7, minmax(140px, 1fr)) var(--time-col);
-      gap:1px;
-      background: var(--border);
-      border:1px solid var(--border);
-      border-radius:18px;
-      overflow:hidden;
-      width:100%;
-      min-width:1100px;
-    }
-    .cell {
-      background:white;
-      min-height: var(--cell);
-      padding:8px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      font-size:13px;
-      position:relative;
-    }
-    .header-cell { background:#f8fafc; font-weight:800; min-height:52px; }
-    .time-cell { background:#fafbff; font-weight:700; color:#475569; }
-    .slot { padding:0; }
-    .slot-inner {
-      width:100%;
-      height:100%;
-      min-height: var(--cell);
-      position:relative;
-      overflow:hidden;
-    }
-    .slot-mark {
-      position:absolute;
-      inset:0;
-      pointer-events:none;
-    }
-    .slot-label {
-      position:absolute;
-      inset:0;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:12px;
-      color:#334155;
-      font-weight:700;
-      pointer-events:none;
-    }
-    .slot-label.free {
-      color:#475569;
-    }
-    .slot-label.hidden {
-      display:none;
-    }
-    .schedule-card + .schedule-card { margin-top: 18px; }
-
-    .export-timezone-select {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 12px;
-  background: #fff;
-  font: inherit;
-  font-weight: 700;
-  color: #334155;
-}
-
-.timezone-toast {
-  position: fixed;
-  top: 30px;
-  left: 65%;
-  right: auto;
-  transform: translateY(-14px);
-  z-index: 50;
-  padding: 18px 24px;
-  border-radius: 18px;
-  background: rgba(79, 70, 229, 0.96);
-  color: #fff;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.35s ease, transform 0.35s ease;
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.timezone-toast.show {
-  opacity: 1;
-  transform:  translateY(0);
-}
+    .app { max-width: 1800px; margin: 0 auto; padding: 20px; display: grid; gap: 16px; }
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 30px rgba(15,23,42,.08); }
+    .hero { padding: 16px; }
+    h1, h2 { margin: 0; }
+    .subtitle, .hint { color: var(--muted); line-height: 1.5; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px; }
+    .tab { border: 1px solid var(--border); border-radius: 999px; padding: 8px 12px; background: #f8fafc; font-weight: 700; }
+    .tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+    .legend { display: flex; flex-wrap: wrap; gap: 10px; }
+    .legend-item { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; background: white; font-size: 13px; }
+    .swatch { width: 18px; height: 18px; border-radius: 5px; border: 1px solid rgba(0,0,0,.08); }
+    .swatch.green { background: rgba(34, 197, 94, .28); }
+    .swatch.yellow { background: rgba(250, 204, 21, .34); }
+    .swatch.red { background: rgba(239, 68, 68, .28); }
+    .swatch.busy { background: rgba(59, 130, 246, .24); background-image: repeating-linear-gradient(45deg, rgba(59,130,246,.32) 0, rgba(59,130,246,.32) 7px, rgba(255,255,255,.22) 7px, rgba(255,255,255,.22) 14px); }
+    .schedule-card { padding: 14px; display: none; }
+    .schedule-card.active { display: block; }
+    .grid-wrap { overflow: auto; border-radius: 8px; }
+    .grid { min-width: 1040px; display: grid; grid-template-columns: var(--time-col) repeat(7, minmax(120px, 1fr)) var(--time-col); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .cell { min-height: var(--cell); background: white; padding: 8px; display: grid; place-items: center; text-align: center; }
+    .header-cell, .time-cell { background: #f8fafc; font-weight: 800; }
+    .slot { position: relative; overflow: hidden; display: grid; grid-template-rows: 1fr 1fr; padding: 0; }
+    .export-half { min-height: calc(var(--cell) / 2); width: 100%; height: 100%; display: grid; place-items: center; padding: 4px 6px; }
+    .export-half.full { grid-row: 1 / span 2; min-height: var(--cell); }
+    .export-half + .export-half { border-top: 1px dashed rgba(107, 114, 128, .22); }
+    .export-half.free { background: #ffffff; }
+    .export-half.green { background: rgba(34, 197, 94, .24); color: #166534; }
+    .export-half.yellow { background: rgba(250, 204, 21, .3); color: #854d0e; }
+    .export-half.red { background: rgba(239, 68, 68, .24); color: #991b1b; }
+    .export-half.busy { background: rgba(59, 130, 246, .2); color: #1e3a8a; background-image: repeating-linear-gradient(45deg, rgba(59,130,246,.28) 0, rgba(59,130,246,.28) 9px, rgba(255,255,255,.22) 9px, rgba(255,255,255,.22) 18px); }
+    .export-half small { font-size: 13px; font-weight: 800; line-height: 1.15; }
   </style>
 </head>
 <body>
-  <div class="app">
-    <section class="panel toolbar">
-  <div>
-    <h1 class="title">Расписание на период летних занятий</h1>
-    <p class="subtitle">Время указано в выбранном часовом поясе. Цвета показывают удобство, а штриховка — занятое время.</p>
+  <main class="app">
+    <section class="panel hero">
+      <h1>Расписание занятий</h1>
+      <p class="subtitle">Публичная версия расписания. Обновлено: 28.06.2026, 17:36:53</p>
+      <div class="legend"><span class="legend-item"><span class="swatch green"></span>Зеленый - удобно</span><span class="legend-item"><span class="swatch yellow"></span>Желтый - приемлемо</span><span class="legend-item"><span class="swatch red"></span>Красный - запасной вариант</span><span class="legend-item"><span class="swatch busy"></span>Синий - занято другим делом</span></div>
+    </section>
+    <section class="panel tabs">
+      <button class="tab active" data-plan-tab="setka-calendar-week-2026-06-29">Неделя 29.06-05.07</button><button class="tab " data-plan-tab="setka-permanent">Постоянное расписание (после 05.07)</button>
+    </section>
+    <section class="panel schedule-card active" data-plan-panel="setka-calendar-week-2026-06-29">
+    <h2>Неделя 29.06-05.07</h2>
+    <p class="hint">Время показано для: Москва (UTC/GMT +3)</p>
+    <div class="grid-wrap">
+      <div class="grid">
+        <div class="cell header-cell"></div>
+        <div class="cell header-cell">Пн</div><div class="cell header-cell">Вт</div><div class="cell header-cell">Ср</div><div class="cell header-cell">Чт</div><div class="cell header-cell">Пт</div><div class="cell header-cell">Сб</div><div class="cell header-cell">Вс</div>
+        <div class="cell header-cell"></div>
+        <div class="cell time-cell">08:00</div>
+    <div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full red"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div>
+    <div class="cell time-cell">08:00</div><div class="cell time-cell">09:00</div>
+    <div class="cell slot"><div class="export-half full yellow"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full yellow"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full red"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div>
+    <div class="cell time-cell">09:00</div><div class="cell time-cell">10:00</div>
+    <div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full red"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div>
+    <div class="cell time-cell">10:00</div><div class="cell time-cell">11:00</div>
+    <div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full green"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full red"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div>
+    <div class="cell time-cell">11:00</div><div class="cell time-cell">12:00</div>
+    <div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full green"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full red"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div>
+    <div class="cell time-cell">12:00</div><div class="cell time-cell">13:00</div>
+    <div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full green"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full green"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full red"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div>
+    <div class="cell time-cell">13:00</div><div class="cell time-cell">14:00</div>
+    <div class="cell slot"><div class="export-half full green"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full green"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full green"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div>
+    <div class="cell time-cell">14:00</div><div class="cell time-cell">15:00</div>
+    <div class="cell slot"><div class="export-half full yellow"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full yellow"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full yellow"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div>
+    <div class="cell time-cell">15:00</div><div class="cell time-cell">16:00</div>
+    <div class="cell slot"><div class="export-half full yellow"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full yellow"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full yellow"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div>
+    <div class="cell time-cell">16:00</div><div class="cell time-cell">17:00</div>
+    <div class="cell slot">
+    <div class="export-half red"><small>Свободно</small></div><div class="export-half unavailable"></div>
+  </div><div class="cell slot">
+    <div class="export-half red"><small>Свободно</small></div><div class="export-half unavailable"></div>
+  </div><div class="cell slot">
+    <div class="export-half red"><small>Свободно</small></div><div class="export-half unavailable"></div>
+  </div><div class="cell slot">
+    <div class="export-half busy"></div><div class="export-half unavailable"></div>
+  </div><div class="cell slot">
+    <div class="export-half busy"></div><div class="export-half unavailable"></div>
+  </div><div class="cell slot">
+    <div class="export-half busy"></div><div class="export-half unavailable"></div>
+  </div><div class="cell slot">
+    <div class="export-half busy"></div><div class="export-half unavailable"></div>
   </div>
-  <div>
-    <select id="exportTimezone" class="export-timezone-select">
-  <option value="moscow">Москва (UTC/GMT +3)</option>
-  <option value="perm">Пермь (UTC/GMT +5)</option>
-  <option value="georgia">Грузия (UTC/GMT +4)</option>
-</select>
-  </div>
-</section>
-
-    <p class="export-explainer">
-      Зелёный, жёлтый и красный цвета показывают, насколько удобно время для занятий.
-      Фиолетовая штриховка означает, что это время уже занято учеником.
-      Синяя штриховка означает, что время занято побочными проектами.
-      Свободные клетки подписаны словом «свободно».
-    </p>
-
-  <div id="timezoneToast" class="timezone-toast">Выберите нужный часовой пояс  🢂</div>
-
-    <div class="legend">
-      <div class="legend-item"><span class="legend-swatch sw-green"></span>Зелёный — удобно</div>
-      <div class="legend-item"><span class="legend-swatch sw-yellow"></span>Жёлтый — приемлемо</div>
-      <div class="legend-item"><span class="legend-swatch sw-red"></span>Красный — запасной вариант</div>
-      <div class="legend-item"><span class="legend-swatch sw-purple"></span>Штриховка фиолетовым — занят учеником</div>
-      <div class="legend-item"><span class="legend-swatch sw-blue"></span>Штриховка синим — занятое время</div>
+    <div class="cell time-cell">17:00</div>
+      </div>
     </div>
-
-    <section class="panel"><div id="tabs" class="tabs"></div></section>
-    <div id="content" class="content"></div>
+  </section><section class="panel schedule-card " data-plan-panel="setka-permanent">
+    <h2>Постоянное расписание (после 05.07)</h2>
+    <p class="hint">Время показано для: Москва (UTC/GMT +3)</p>
+    <div class="grid-wrap">
+      <div class="grid">
+        <div class="cell header-cell"></div>
+        <div class="cell header-cell">Пн</div><div class="cell header-cell">Вт</div><div class="cell header-cell">Ср</div><div class="cell header-cell">Чт</div><div class="cell header-cell">Пт</div><div class="cell header-cell">Сб</div><div class="cell header-cell">Вс</div>
+        <div class="cell header-cell"></div>
+        <div class="cell time-cell">08:00</div>
+    <div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full red"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div>
+    <div class="cell time-cell">08:00</div><div class="cell time-cell">09:00</div>
+    <div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full red"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div>
+    <div class="cell time-cell">09:00</div><div class="cell time-cell">10:00</div>
+    <div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full red"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div>
+    <div class="cell time-cell">10:00</div><div class="cell time-cell">11:00</div>
+    <div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full red"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div>
+    <div class="cell time-cell">11:00</div><div class="cell time-cell">12:00</div>
+    <div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full green"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full red"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div>
+    <div class="cell time-cell">12:00</div><div class="cell time-cell">13:00</div>
+    <div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full green"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full red"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div>
+    <div class="cell time-cell">13:00</div><div class="cell time-cell">14:00</div>
+    <div class="cell slot"><div class="export-half full green"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full green"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full green"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div>
+    <div class="cell time-cell">14:00</div><div class="cell time-cell">15:00</div>
+    <div class="cell slot"><div class="export-half full yellow"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full yellow"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full yellow"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div>
+    <div class="cell time-cell">15:00</div><div class="cell time-cell">16:00</div>
+    <div class="cell slot"><div class="export-half full yellow"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full yellow"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full yellow"><small>Свободно</small></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div><div class="cell slot"><div class="export-half full busy"></div></div>
+    <div class="cell time-cell">16:00</div><div class="cell time-cell">17:00</div>
+    <div class="cell slot">
+    <div class="export-half red"><small>Свободно</small></div><div class="export-half unavailable"></div>
+  </div><div class="cell slot">
+    <div class="export-half red"><small>Свободно</small></div><div class="export-half unavailable"></div>
+  </div><div class="cell slot">
+    <div class="export-half red"><small>Свободно</small></div><div class="export-half unavailable"></div>
+  </div><div class="cell slot">
+    <div class="export-half busy"></div><div class="export-half unavailable"></div>
+  </div><div class="cell slot">
+    <div class="export-half busy"></div><div class="export-half unavailable"></div>
+  </div><div class="cell slot">
+    <div class="export-half busy"></div><div class="export-half unavailable"></div>
+  </div><div class="cell slot">
+    <div class="export-half red"><small>Свободно</small></div><div class="export-half unavailable"></div>
   </div>
-
+    <div class="cell time-cell">17:00</div>
+      </div>
+    </div>
+  </section>
+  </main>
   <script>
-    const state = {"schedules":[{"id":"8ac3b5be-aa78-4695-9e3b-f5513d03f353","title":"Летнее расписание (с 29.06)","tzShift":true,"days":["ПН","ВТ","СР","ЧТ","ПТ","СБ ","ВСК"],"assignments":{"sun_19":"Max","mon_8":"Данила","mon_9":"Андрей","mon_10":"Даша","mon_11":"Диана","tue_8":"Егор","tue_9":"Даша","wed_8":"Данила","wed_9":"Андрей","wed_10":"МаксимScratch","sun_8":"Марк","sun_12":"ДаняПР","sun_15":"Марк","sun_13":"MatveiUnity","tue_10":"БогданPython","sun_10":"МаркСева","sun_9":"МаркСева","wed_11":"Марк","mon_12":"МаркRBLX","sun_16":"Max","sun_11":"ДимаEV3","sun_14":"Ник","wed_12":"МаркRBLX","mon_13":"МишаPython","wed_13":"МишаPython","tue_11":"ЛёшаМСК"},"painted":{"sat_10":"busy","sat_11":"busy","sat_14":"busy","sat_12":"busy","sat_15":"busy","sat_17":"busy","sat_18":"busy","sat_21":"yellow","sat_22":"yellow","thu_13":"red","thu_10":"red","thu_12":"red","thu_14":"busy","thu_15":"busy","thu_16":"busy","thu_17":"busy","thu_18":"busy","thu_20":"busy","thu_19":"busy","fri_20":"busy","fri_19":"busy","fri_18":"busy","fri_17":"busy","fri_15":"busy","fri_14":"busy","fri_13":"busy","fri_12":"busy","fri_11":"busy","sun_20":"busy","sat_13":"busy","sat_20":"busy","thu_11":"red","wed_20":"yellow","wed_19":"yellow","tue_19":"yellow","tue_20":"yellow","mon_19":"yellow","mon_20":"yellow","mon_18":"red","tue_17":"red","mon_17":"red","tue_15":"yellow","tue_14":"green","mon_14":"green","mon_15":"yellow","tue_16":"yellow","mon_16":"yellow","sat_19":"busy","thu_8":"red","sun_18":"busy","sat_8":"busy","sat_9":"busy","fri_8":"busy","fri_9":"busy","wed_17":"red","wed_18":"red","tue_18":"red","fri_16":"busy","wed_16":"yellow","fri_10":"busy","tue_12":"green","wed_14":"green","wed_15":"yellow","sun_17":"busy","sat_16":"busy","tue_13":"green","thu_9":"red"}}],"compareMode":false};
-    const hours = [8,9,10,11,12,13,14,15,16,17];
-    const dayOrder = ['mon','tue','wed','thu','fri','sat','sun'];
-    const dayKeyByIndex = i => dayOrder[i];
-    const tabs = document.getElementById('tabs');
-    const content = document.getElementById('content');
-
-const timezoneSelect = document.getElementById('exportTimezone');
-const timezoneToast = document.getElementById('timezoneToast');
-let exportTimezone = 'moscow';
-
-function showTimezoneToast() {
-  timezoneToast.classList.add('show');
-  setTimeout(() => timezoneToast.classList.remove('show'), 2600);
-}
-
-timezoneSelect.addEventListener('change', () => {
-  exportTimezone = timezoneSelect.value;
-  render(currentScheduleId);
-});           
-
-    function timeLabel(hour) {
-  const offsets = { moscow: 0, perm: 2, georgia: 1 };
-  const offset = offsets[exportTimezone] ?? 0;
-  return String(hour + offset).padStart(2, '0') + ':00';
-}
-
-    function slotKey(dayIdx, hour) {
-      return dayKeyByIndex(dayIdx) + '_' + hour;
-    }
-
-    function render(activeId) {
-      currentScheduleId = activeId;
-      tabs.innerHTML = '';
-      content.innerHTML = '';
-
-      state.schedules.forEach(s => {
-        const b = document.createElement('button');
-        b.className = 'tab' + (s.id === activeId ? ' active' : '');
-        b.textContent = s.title || 'Без названия';
-        b.onclick = function () { render(s.id); };
-        tabs.appendChild(b);
+    document.querySelectorAll('[data-plan-tab]').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('[data-plan-tab]').forEach((item) => item.classList.remove('active'));
+        document.querySelectorAll('[data-plan-panel]').forEach((item) => item.classList.remove('active'));
+        tab.classList.add('active');
+        document.querySelector('[data-plan-panel="' + tab.dataset.planTab + '"]').classList.add('active');
       });
-
-      const schedule = state.schedules.find(s => s.id === activeId) || state.schedules[0];
-      if (!schedule) return;
-
-      const card = document.createElement('section');
-      card.className = 'panel schedule-card';
-
-      const title = document.createElement('h2');
-      title.className = 'schedule-title';
-      title.textContent = schedule.title || 'Без названия';
-
-      const hint = document.createElement('p');
-      hint.className = 'hint';
-      hint.textContent = '';
-
-      const wrap = document.createElement('div');
-      wrap.className = 'grid-wrap';
-      wrap.appendChild(buildGrid(schedule));
-
-      card.appendChild(title);
-      card.appendChild(hint);
-      card.appendChild(wrap);
-      content.appendChild(card);
-    }
-
-    function buildGrid(schedule) {
-      const grid = document.createElement('div');
-      grid.className = 'grid';
-
-      grid.appendChild(makeCell('', 'cell header-cell'));
-      schedule.days.forEach(function (d) {
-        grid.appendChild(makeCell(d, 'cell header-cell'));
-      });
-      grid.appendChild(makeCell('', 'cell header-cell'));
-
-      hours.forEach(function (hour) {
-        grid.appendChild(makeCell(timeLabel(hour), 'cell time-cell'));
-
-        schedule.days.forEach(function (_, dayIdx) {
-          const key = slotKey(dayIdx, hour);
-          const slot = document.createElement('div');
-          slot.className = 'cell slot';
-
-          const inner = document.createElement('div');
-          inner.className = 'slot-inner';
-
-                    const mark = schedule.painted && schedule.painted[key] ? schedule.painted[key] : null;
-          const hasStudent = !!(schedule.assignments && schedule.assignments[key]);
-
-          if (hasStudent) {
-            const overlay = document.createElement('div');
-            overlay.className = 'slot-mark';
-            overlay.style.cssText = 'background-color: rgba(168, 85, 247, 0.08);background-image: repeating-linear-gradient(45deg, rgba(168, 85, 247, 0.08) 0, rgba(168, 85, 247, 0.08) 9px, rgba(255, 255, 255, 0.08) 9px, rgba(255, 255, 255, 0.08) 18px);';
-            inner.appendChild(overlay);
-          } else if (mark === 'busy') {
-            const overlay = document.createElement('div');
-            overlay.className = 'slot-mark';
-            overlay.style.cssText = 'background-color: rgba(59, 130, 246, 0.08);background-image: repeating-linear-gradient(45deg, rgba(59, 130, 246, 0.08) 0, rgba(59, 130, 246, 0.08) 9px, rgba(255, 255, 255, 0.08) 9px, rgba(255, 255, 255, 0.08) 18px);';
-            inner.appendChild(overlay);
-          } else if (mark === 'green' || mark === 'yellow' || mark === 'red') {
-            const overlay = document.createElement('div');
-            overlay.className = 'slot-mark';
-            if (mark === 'green') overlay.style.cssText = 'background-color: rgba(34, 197, 94, 0.18);';
-            if (mark === 'yellow') overlay.style.cssText = 'background-color: rgba(250, 204, 21, 0.18);';
-            if (mark === 'red') overlay.style.cssText = 'background-color: rgba(239, 68, 68, 0.18);';
-            inner.appendChild(overlay);
-
-            const label = document.createElement('div');
-            label.className = 'slot-label free';
-            label.textContent = 'свободно';
-            inner.appendChild(label);
-          } else {
-            const label = document.createElement('div');
-            label.className = 'slot-label free';
-            label.textContent = 'свободно';
-            inner.appendChild(label);
-          }
-
-          slot.appendChild(inner);
-          grid.appendChild(slot);
-        });
-
-        grid.appendChild(makeCell(timeLabel(hour, schedule), 'cell time-cell'));
-      });
-
-      return grid;
-    }
-
-    function makeCell(text, cls) {
-      const d = document.createElement('div');
-      d.className = cls;
-      d.textContent = text;
-      return d;
-    }
-    let currentScheduleId = state.schedules[0]?.id || null;
-window.addEventListener('load', showTimezoneToast);
-    render(state.schedules[0] && state.schedules[0].id ? state.schedules[0].id : null);
+    });
   </script>
 </body>
 </html>
